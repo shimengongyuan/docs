@@ -3,9 +3,14 @@
 The following example is a bit lengthy, but explains why use service location and dependency injection.
 First, let's pretend we are developing a component called SomeComponent. This performs a task that is not important now.
 Our component has some dependency that is a connection to a database.
+下面的例子会有点长，但是很好的解释了我们为什么使用服务定位和依赖注入。
+首先，假设我们正在开发的组件叫SomeComponent。
+组件具体做什么业务不用关心，只需要知道这个组件需要连接数据库。
 
 In this first example, the connection is created inside the component. This approach is impractical; due to the fact
 we cannot change the connection parameters or the type of database system because the component only works as created.
+在这个例子中，组件自己来创建数据库连接，但其实这种方法并不实用，
+因为这样的话组件只能建立不能改变连接参数和数据库类型的连接。
 
 .. code-block:: php
 
@@ -18,6 +23,7 @@ we cannot change the connection parameters or the type of database system becaus
          * The instantiation of the connection is hardcoded inside
          * the component, therefore it's difficult replace it externally
          * or change its behavior
+         * 连接信息被硬编码到组件中，因此很难从外部对其进行更换和修改。
          */
         public function someDbTask()
         {
@@ -38,6 +44,7 @@ we cannot change the connection parameters or the type of database system becaus
 
 To solve this, we have created a setter that injects the dependency externally before using it. For now, this seems to be
 a good solution:
+为了解决这个问题，我们在组件中增加一个设置连接的方法，并在使用组件的时候才从外部传入数据库连接信息。就目前而言，这看起来是个很好的解决方案：
 
 .. code-block:: php
 
@@ -50,6 +57,7 @@ a good solution:
 
         /**
          * Sets the connection externally
+         * 设置数据库连接
          */
         public function setConnection($connection)
         {
@@ -68,6 +76,7 @@ a good solution:
     $some = new SomeComponent();
 
     //Create the connection
+    //建立连接
     $connection = new Connection(array(
         "host" => "localhost",
         "username" => "root",
@@ -76,6 +85,7 @@ a good solution:
     ));
 
     //Inject the connection in the component
+    //将数据库连接注入到我们的组件中
     $some->setConnection($connection);
 
     $some->someDbTask();
@@ -84,6 +94,8 @@ Now consider that we use this component in different parts of the application an
 then we will need to create the connection several times before passing it to the component.
 Using some kind of global registry where we obtain the connection instance and not have
 to create it again and again could solve this:
+现在想一下，我们在一个网站应用的不同的地方要多次调用这个组件，因为每次调用都要建立一个数据库连接，那就需要建立很多个连接。
+使用类似全局注册的方式，我们建立一个连接实例后，就不需要重复建立连接。顺着这个思路继续：
 
 .. code-block:: php
 
@@ -94,6 +106,7 @@ to create it again and again could solve this:
 
         /**
          * Returns the connection
+         * 全局注册类，返回数据库连接实例
          */
         public static function getConnection()
         {
@@ -114,6 +127,7 @@ to create it again and again could solve this:
 
         /**
          * Sets the connection externally
+         * 设置数据库连接
          */
         public function setConnection($connection)
         {
@@ -132,11 +146,13 @@ to create it again and again could solve this:
     $some = new SomeComponent();
 
     //Pass the connection defined in the registry
+    //使用全局注册的连接实例
     $some->setConnection(Registry::getConnection());
 
     $some->someDbTask();
 
 Now, let's imagine that we must implement two methods in the component, the first always need to create a new connection and the second always need to use a shared connection:
+现在，我们再想一下，我们必须给组件实现两个方法，第一种是总是创建新的数据库连接，第二种使用共享连接。
 
 .. code-block:: php
 
@@ -149,6 +165,7 @@ Now, let's imagine that we must implement two methods in the component, the firs
 
         /**
          * Creates a connection
+         * 建立连接
          */
         protected static function _createConnection()
         {
@@ -162,6 +179,7 @@ Now, let's imagine that we must implement two methods in the component, the firs
 
         /**
          * Creates a connection only once and returns it
+         * 如果有连接就直接返回，没有的话重新建立
          */
         public static function getSharedConnection()
         {
@@ -174,6 +192,7 @@ Now, let's imagine that we must implement two methods in the component, the firs
 
         /**
          * Always returns a new connection
+         * 一直返回新的连接
          */
         public static function getNewConnection()
         {
@@ -189,6 +208,7 @@ Now, let's imagine that we must implement two methods in the component, the firs
 
         /**
          * Sets the connection externally
+         * 设置数据库连接
          */
         public function setConnection($connection)
         {
@@ -197,6 +217,7 @@ Now, let's imagine that we must implement two methods in the component, the firs
 
         /**
          * This method always needs the shared connection
+         * 这个方法一直使用共享连接
          */
         public function someDbTask()
         {
@@ -207,6 +228,7 @@ Now, let's imagine that we must implement two methods in the component, the firs
 
         /**
          * This method always needs a new connection
+         * 这个方法则一直使用新连接
          */
         public function someOtherDbTask($connection)
         {
@@ -218,26 +240,32 @@ Now, let's imagine that we must implement two methods in the component, the firs
     $some = new SomeComponent();
 
     //This injects the shared connection
+    //这里将使用共享连接
     $some->setConnection(Registry::getSharedConnection());
 
     $some->someDbTask();
 
     //Here, we always pass a new connection as parameter
+    //而这里，我们需要一直传一个新连接做参数
     $some->someOtherDbTask(Registry::getConnection());
 
 So far we have seen how dependency injection solved our problems. Passing dependencies as arguments instead
 of creating them internally in the code makes our application more maintainable and decoupled. However, in the long-term,
 this form of dependency injection have some disadvantages.
+到目前为止，我们已经看到依赖注入解决了我们的问题。将依赖作为参数传递而不是在代码内部建立它，使得我们的应用更易于维护和解耦，但是从长远来看，
+依赖注入又有一些缺点。
 
 For instance, if the component has many dependencies, we will need to create multiple setter arguments to pass
 the dependencies or create a constructor that pass them with many arguments, additionally creating dependencies
 before using the component, every time, makes our code not as maintainable as we would like:
-
+例如，如果该组件有很多的依赖，我们就需要为每一个依赖创建一个赋值方法来进行参数传递或者创建一个可以传递多个参数的构造器，另外,
+每一次使用该组件之前都要创建依赖，让我们代码可维护性并没有达到预期：
 .. code-block:: php
 
     <?php
 
     //Create the dependencies or retrieve them from the registry
+    //建立依赖或者从注册方法里搜索他们
     $connection = new Connection();
     $session = new Session();
     $fileSystem = new FileSystem();
@@ -245,9 +273,11 @@ before using the component, every time, makes our code not as maintainable as we
     $selector = new Selector();
 
     //Pass them as constructor parameters
+    //作为构造方法的参数传递
     $some = new SomeComponent($connection, $session, $fileSystem, $filter, $selector);
 
     // ... or using setters
+    // ... 或者使用赋值方法
 
     $some->setConnection($connection);
     $some->setSession($session);
@@ -259,6 +289,8 @@ Think we had to create this object in many parts of our application. If you ever
 we need to go everywhere to remove the parameter in the constructor or the setter where we injected the code. To solve this,
 we return again to a global registry to create the component. However, it adds a new layer of abstraction before creating
 the object:
+想一想，我们需要在应用的许多地方创建此对象。一旦不再需要某个依赖，我们还需要在任何使用该组件的地方重复删除相关构造方法或赋值方法的参数。
+为了解决这个问题，我们重新回到建立该组件的全局注册表，并且在创建对象前增加一个新的抽象层：
 
 .. code-block:: php
 
@@ -271,6 +303,7 @@ the object:
 
         /**
          * Define a factory method to create SomeComponent instances injecting its dependencies
+         * 定义一个注入依赖的工厂方法来创建该组件的实例
          */
         public static function factory()
         {
@@ -288,10 +321,12 @@ the object:
 
 One moment, we returned to the beginning, we are again building the dependencies inside of the component! We can move on and find out a way
 to solve this problem every time. But it seems that time and again we fall back into bad practices.
+啊哦，我们又回到了最初，我们有把依赖硬编码到组件内部！每一次我们都能找到一个解决问题的办法。但是一次又一次的我们再次失败。
 
 A practical and elegant way to solve these problems is using a container for dependencies. The containers act as the global registry that
 we saw earlier. Using the container for dependencies as a bridge to obtain the dependencies allows us to reduce the complexity
 of our component:
+使用依赖容器是解决这些问题最实际和优雅的方法。我们前面看到过，容器可以作为全局注册表。使用依赖容器作为桥梁来获取依赖可以让我们的组件降低复杂度。
 
 .. code-block:: php
 
@@ -312,6 +347,8 @@ of our component:
 
             // Get the connection service
             // Always returns a new connection
+            // 获取连接服务
+            // 一直返回一个新连接
             $connection = $this->_di->get('db');
 
         }
@@ -321,9 +358,12 @@ of our component:
 
             // Get a shared connection service,
             // this will return the same connection everytime
+            // 获取一个共享连接服务
+            // 每次都返回同样的连接
             $connection = $this->_di->getShared('db');
 
             //This method also requires an input filtering service
+            //这个方法还需要一个输入过滤服务
             $filter = $this->_di->get('filter');
 
         }
@@ -333,6 +373,7 @@ of our component:
     $di = new Phalcon\DI();
 
     //Register a "db" service in the container
+    //注册一个‘db’服务到容器
     $di->set('db', function() {
         return new Connection(array(
             "host" => "localhost",
@@ -343,16 +384,19 @@ of our component:
     });
 
     //Register a "filter" service in the container
+    //注册一个‘filter’服务到容器
     $di->set('filter', function() {
         return new Filter();
     });
 
     //Register a "session" service in the container
+    //注册一个‘session’服务到容器
     $di->set('session', function() {
         return new Session();
     });
 
     //Pass the service container as unique parameter
+    //将该服务容器作为唯一的参数传递给组件
     $some = new SomeComponent($di);
 
     $some->someTask();
@@ -360,19 +404,26 @@ of our component:
 The component now simply access the service it requires when it needs it, if it does not require a service that is not even initialized
 saving resources. The component is now highly decoupled. For example, we can replace the manner in which connections are created,
 their behavior or any other aspect of them and that would not affect the component.
+现在组件只在需要的时候才会访问服务，如果不需要某个服务，该服务甚至不会初始化，从而节省资源。该组件现在高度解耦。例如我们在每次创建连接前替换服务，
+他们的行为或者任何其它方面都不会影响到组件的使用。
 
 实现方法（Our approach）
 ============
 Phalcon\\DI is a component implementing Dependency Injection and Location of services and it's itself a container for them.
+Phalcon\\DI 是一个实现了依赖注入和位置服务的组件，它本身还是一个服务容器。
 
 Since Phalcon is highly decoupled, Phalcon\\DI is essential to integrate the different components of the framework. The developer can
 also use this component to inject dependencies and manage global instances of the different classes used in the application.
+由于 Phalcon 高度解耦，Phalcon\\DI 是整合框架中不同组件必不可少的一部分。开发者还可以在应用中使用这个组件来注入依赖关系从而管理不同类的全局实例。
 
 Basically, this component implements the `Inversion of Control`_ pattern. Applying this, the objects do not receive their dependencies
 using setters or constructors, but requesting a service dependency injector. This reduces the overall complexity since there is only
 one way to get the required dependencies within a component.
+基本上，这个组件实现了控制模式反转。基于此，对象不在需要用赋值方法或者构造方法来处理依赖关系。
+因为只有这一种方式来获取某个组件的所有需要的依赖，从而大大降低了整体的复杂度。
 
 Additionally, this pattern increases testability in the code, thus making it less prone to errors.
+此外，这种方式还增加了代码的可测试性，从而使代码更不容易出现错误。
 
 使用容器注册服务（Registering services in the Container）
 =====================================
