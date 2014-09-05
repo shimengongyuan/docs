@@ -429,89 +429,114 @@ Additionally, this pattern increases testability in the code, thus making it les
 =====================================
 The framework itself or the developer can register services. When a component A requires component B (or an instance of its class) to operate, it
 can request component B from the container, rather than creating a new instance component B.
+框架本身或者开发者都可以注册服务。当组件A的操作需要组件B（或者它的实例），组件A就可以从依赖容器中请求组件B，而不需要为组件B创建实例。
 
 This way of working gives us many advantages:
+这种工作方式为我们提供了很多好处：
 
 * We can easily replace a component with one created by ourselves or a third party.
+* 可以很容易的用自己的或者第三方的组件替换现在的。
 * We have full control of the object initialization, allowing us to set these objects, as needed before delivering them to components.
+* 拥有对象初始化的完整控制权，根据需要来设置组件需要对象。
 * We can get global instances of components in a structured and unified way
+* 可以在组件里用统一的方式获取全局实例
 
 Services can be registered using several types of definitions:
+定时服务的几种方式：
 
 .. code-block:: php
 
     <?php
 
     //Create the Dependency Injector Container
+    //创建依赖注入容器
     $di = new Phalcon\DI();
 
     //By its class name
+    //使用类名称
     $di->set("request", 'Phalcon\Http\Request');
 
     //Using an anonymous function, the instance will be lazy loaded
+    //使用匿名函数，实例会被延迟加载
     $di->set("request", function() {
         return new Phalcon\Http\Request();
     });
 
     //Registering an instance directly
+    //直接注册实例
     $di->set("request", new Phalcon\Http\Request());
 
     //Using an array definition
+    //数组方式定义
     $di->set("request", array(
         "className" => 'Phalcon\Http\Request'
     ));
 
 The array syntax is also allowed to register services:
+注册服务还可以使用数组语法方式
 
 .. code-block:: php
 
     <?php
 
     //Create the Dependency Injector Container
+    //创建依赖注入容器
     $di = new Phalcon\DI();
 
     //By its class name
+    //使用类名称
     $di["request"] = 'Phalcon\Http\Request';
 
     //Using an anonymous function, the instance will be lazy loaded
+    //使用匿名函数，实例会被延迟加载
     $di["request"] = function() {
         return new Phalcon\Http\Request();
     };
 
     //Registering an instance directly
+    //直接注册实例
     $di["request"] = new Phalcon\Http\Request();
 
     //Using an array definition
+    //数组方式定义
     $di["request"] = array(
         "className" => 'Phalcon\Http\Request'
     );
 
 In the examples above, when the framework needs to access the request data, it will ask for the service identified as ‘request’ in the container.
 The container in turn will return an instance of the required service. A developer might eventually replace a component when he/she needs.
+在上面的例子中，当框架需要访问请求数据，它将在容器中查找并定位到‘request’服务。容器将返回一个请求服务的实例。只要开发者需要，就可以替换掉这个组件。
 
 Each of the methods (demonstrated in the examples above) used to set/register a service has advantages and disadvantages. It is up to the
 developer and the particular requirements that will designate which one is used.
+上面例子中的每一种设置或注册服务的方法都有它的优点和缺点。具体用哪一种，取决于开发者的习惯和特殊的需求。
 
 Setting a service by a string is simple, but lacks flexibility. Setting services using an array offers a lot more flexibility, but makes the
 code more complicated. The lambda function is a good balance between the two, but could lead to more maintenance than one would expect.
+用字符串方式设置服务是非常简单的，但是缺乏一些弹性。用数组设置服务则提供了更多的灵活性，但会使代码更复杂。匿名函数在这两者之间找到了一个很好的平衡，但是可能会带来一些维护难度。
 
 Phalcon\\DI offers lazy loading for every service it stores. Unless the developer chooses to instantiate an object directly and store it
 in the container, any object stored in it (via array, string, etc.) will be lazy loaded i.e. instantiated only when requested.
+Phalcon\\DI 可以为保存其中的任何服务提供延迟加载，除非开发者选择将实例直接保存进容器。保存在容器中的任何对象（通过数组，字符串等方式）都会在它被请求的时候才延迟加载或者说实例化。
 
 简单的注册（Simple Registration）
 -------------------
 As seen before, there are several ways to register services. These we call simple:
+如上所叙，注册服务的方式是多重多样的。这些方式我们称之为简单方式。
 
-String
+String（字符串）
 ^^^^^^
 This type expects the name of a valid class, returning an object of the specified class, if the class is not loaded it will be instantiated using an auto-loader.
 This type of definition does not allow to specify arguments for the class constructor or parameters:
+这种类型需要使用有效的类的名称，返回指定的类的对象，如果类还没有加载，它将被自动加载机制自动加载并实例化。
+这种定义类型不允许为类的构造方法传递指定的参数。
 
 .. code-block:: php
 
     <?php
 
     // return new Phalcon\Http\Request();
+    // 返回 new Phalcon\Http\Request()
     $di->set('request', 'Phalcon\Http\Request');
 
 对象（Object）
@@ -520,18 +545,22 @@ This type expects an object. Due to the fact that object does not need to be res
 already an object, one could say that it is not really a dependency injection,
 however it is useful if you want to force the returned dependency to always be
 the same object/value:
+这种方式需要一个对象。由于它已经是一个对象而不需要处理，你可以说这种方式不是真正的依赖注入，
+然而如果你想强制它一直返回同样的对象/值的时候，这种方式是很有用的。
 
 .. code-block:: php
 
     <?php
 
     // return new Phalcon\Http\Request();
+    // 返回 new Phalcon\Http\Request()
     $di->set('request', new Phalcon\Http\Request());
 
 闭包与匿名函数（Closures/Anonymous functions）
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 This method offers greater freedom to build the dependency as desired, however, it is difficult to
 change some of the parameters externally without having to completely change the definition of dependency:
+如同希望的一样，这种方式为建立依赖提供了更大的自由，然而，修改不需要完全修改的依赖定义的外部参数是困难的（好绕口的一句话）。
 
 .. code-block:: php
 
@@ -547,12 +576,14 @@ change some of the parameters externally without having to completely change the
     });
 
 Some of the limitations can be overcome by passing additional variables to the closure's environment:
+一些不方便的地方可以通过传递附加变量到封闭函数来解决
 
 .. code-block:: php
 
     <?php
 
     //Using the $config variable in the current scope
+    //在当前范围内使用变量 $config
     $di->set("db", function() use ($config) {
         return new \Phalcon\Db\Adapter\Pdo\Mysql(array(
              "host" => $config->host,
